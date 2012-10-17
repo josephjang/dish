@@ -13,8 +13,9 @@ rsh = "/usr/kerberos/bin/rsh"
 hostRangeResolver = "./host_range_resolver.py"
 
 class Reader(threading.Thread):
-	def __init__(self, stream):
+	def __init__(self, hostname, stream):
 		super(Reader, self).__init__()
+		self.hostname = hostname
 		self.stream = stream
 	
 	def run(self):
@@ -22,7 +23,7 @@ class Reader(threading.Thread):
 			line = self.stream.readline()
 			if not line:
 				break
-			print line.rstrip()
+			print self.hostname, line.rstrip()
 
 def executeRemoteCommand(host, command):
         popen = subprocess.Popen([rsh, host, command], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -58,11 +59,10 @@ if(__name__ == "__main__"):
         for host in hosts:
                 popen = executeRemoteCommand(host, options.command)
                 popens.append(popen)
-        for popen in popens:
-			stdoutReader = Reader(popen.stdout)
-			stdoutReader.start()
-			stderrReader = Reader(popen.stderr)
-			stderrReader.start()
+				stdoutReader = Reader(host, popen.stdout)
+				stdoutReader.start()
+				stderrReader = Reader(host, popen.stderr)
+				stderrReader.start()
         while len(popens) > 0:
                 popens = waitForTermination(popens)
                 time.sleep(0.1)
